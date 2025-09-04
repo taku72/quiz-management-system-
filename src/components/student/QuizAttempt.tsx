@@ -248,8 +248,12 @@ export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCa
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
+<<<<<<< HEAD
         <Button variant="outline" onClick={onCancel} className="flex items-center space-x-4 text-sm text-gray-500">
 
+=======
+        <Button variant="outline" onClick={onCancel} className="flex items-center space-x-2">
+>>>>>>> 939e5a8 (Initial commit)
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </Button>
