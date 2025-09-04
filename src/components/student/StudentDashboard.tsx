@@ -43,7 +43,7 @@ export const StudentDashboard: React.FC = () => {
       }
     } catch (error) {
       console.log('Database load failed, using mock data:', error);
-      // Fallback to mock data
+      // Fallback toop mock data
       const mockQuizzes = quizzes
         .filter(quiz => quiz.isActive)
         .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
