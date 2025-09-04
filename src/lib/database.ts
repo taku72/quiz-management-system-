@@ -10,17 +10,21 @@ const isSupabaseConfigured = () => {
 
 // User operations
 export const userService = {
-  async createUser(userData: { username: string; email: string; role: string; password: string }) {
+  async createUser(userData: { id?: string; username: string; email: string; role: string; password?: string }) {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
+    const insertData = userData.id
+      ? { id: userData.id, username: userData.username, email: userData.email, role: userData.role }
+      : { username: userData.username, email: userData.email, role: userData.role, password: userData.password };
+
     const { data, error } = await supabase
       .from('users')
-      .insert([userData])
+      .insert([insertData])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -290,7 +294,7 @@ export const analyticsService = {
     const totalQuizzes = quizzes?.length || 0;
     const totalAttempts = attempts?.length || 0;
     const totalUsers = users?.length || 0;
-    const passedAttempts = attempts?.filter(a => a.passed).length || 0;
+    const passedAttempts = attempts?.filter((a: any) => a.passed).length || 0;
     const passRate = totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0;
     
     return {
