@@ -16,7 +16,7 @@ export const userService = {
     }
 
     const insertData = userData.id
-      ? { id: userData.id, username: userData.username, email: userData.email, role: userData.role }
+      ? { id: userData.id, username: userData.username, email: userData.email, role: userData.role, password: userData.password }
       : { username: userData.username, email: userData.email, role: userData.role, password: userData.password };
 
     const { data, error } = await supabase
@@ -33,13 +33,13 @@ export const userService = {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, email, role, password, created_at, updated_at')
       .eq('username', username)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   },
@@ -48,13 +48,13 @@ export const userService = {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, email, role, password, created_at, updated_at')
       .eq('email', email)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   },
@@ -63,13 +63,13 @@ export const userService = {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, email, role, password, created_at, updated_at')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -78,12 +78,12 @@ export const userService = {
     if (!isSupabaseConfigured()) {
       return [];
     }
-    
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, email, role, password, created_at, updated_at')
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   }
