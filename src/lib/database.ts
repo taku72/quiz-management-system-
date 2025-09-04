@@ -290,12 +290,7 @@ export const analyticsService = {
     const totalQuizzes = quizzes?.length || 0;
     const totalAttempts = attempts?.length || 0;
     const totalUsers = users?.length || 0;
-<<<<<<< HEAD
-    const passedAttempts = attempts?.filter((a: any) => a.passed).length || 0;
-
-=======
     const passedAttempts = attempts?.filter(a => a.passed).length || 0;
->>>>>>> 939e5a8 (Initial commit)
     const passRate = totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0;
     
     return {
