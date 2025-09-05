@@ -168,7 +168,9 @@ export const QuizResults: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAttempts.slice().reverse().map((attempt) => (
+                  {filteredAttempts
+                    .sort((a, b) => new Date(b.completed_at || b.completedAt).getTime() - new Date(a.completed_at || a.completedAt).getTime())
+                    .map((attempt) => (
                     <tr key={attempt.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">

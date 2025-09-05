@@ -10,15 +10,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Plus, Trash2, Save } from 'lucide-react';
 
 interface CreateQuizFormProps {
-  onSuccess: () => void;
+   onSuccess: () => void;
+   quiz?: any; // For editing existing quiz
 }
 
-export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [passingScore, setPassingScore] = useState(60);
-  const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>([]);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz }) => {
+   const [title, setTitle] = useState(quiz?.title || '');
+   const [description, setDescription] = useState(quiz?.description || '');
+   const [passingScore, setPassingScore] = useState(quiz?.passingScore || 60);
+   const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>(
+     quiz?.questions ? quiz.questions.map((q: any) => ({ ...q, id: undefined })) : []
+   );
+   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addQuestion = (type: 'multiple-choice' | 'true-false') => {
     const newQuestion: Omit<Question, 'id'> = {
@@ -78,11 +81,10 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess }) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    const newQuiz: Quiz = {
-      id: Date.now().toString(),
+    const quizData = {
       title: title.trim(),
       description: description.trim(),
       questions: questions.map((q, index) => ({
@@ -92,42 +94,59 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess }) => 
       })),
       passingScore,
       createdBy: '1', // Admin ID
-      createdAt: new Date().toISOString(),
-      isActive: true
+      createdAt: quiz?.createdAt || new Date().toISOString(),
+      isActive: quiz?.isActive ?? true
     };
 
     try {
-      // Try to save to database first
-      await quizService.createQuiz({
-        title: newQuiz.title,
-        description: newQuiz.description,
-        questions: newQuiz.questions,
-        time_limit: Math.ceil(newQuiz.questions.length * 1.5), // Estimated time in minutes
-        passing_score: newQuiz.passingScore,
-        created_by: '332f2cb8-74b1-4a97-92b3-3215879042e2' // Use actual user ID from database
-      });
-      console.log('Quiz saved to database successfully');
+      if (quiz) {
+        // Update existing quiz
+        await quizService.updateQuiz(quiz.id, {
+          title: quizData.title,
+          description: quizData.description,
+          questions: quizData.questions,
+          passingScore: quizData.passingScore,
+          isActive: quizData.isActive
+        });
+        console.log('Quiz updated successfully');
+      } else {
+        // Create new quiz
+        await quizService.createQuiz({
+          title: quizData.title,
+          description: quizData.description,
+          questions: quizData.questions,
+          time_limit: Math.ceil(quizData.questions.length * 1.5), // Estimated time in minutes
+          passing_score: quizData.passingScore,
+          created_by: '332f2cb8-74b1-4a97-92b3-3215879042e2' // Use actual user ID from database
+        });
+        console.log('Quiz created successfully');
+      }
     } catch (error) {
-      console.log('Database save failed, using local storage:', error);
-      // Fallback to local storage
-      addQuiz(newQuiz);
+      console.log('Database operation failed:', error);
+      // For editing, we don't have a fallback since we're updating existing data
+      if (!quiz) {
+        // Fallback to local storage for new quizzes
+        addQuiz(quizData as Quiz);
+      }
     }
-    
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setPassingScore(60);
-    setQuestions([]);
-    setErrors({});
-    
+
+    // Reset form only for new quizzes
+    if (!quiz) {
+      setTitle('');
+      setDescription('');
+      setPassingScore(60);
+      setQuestions([]);
+      setErrors({});
+    }
+
     onSuccess();
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Create New Quiz</h2>
-        <p className="text-gray-600">Build a comprehensive quiz for your students</p>
+        <h2 className="text-xl font-semibold text-gray-900">{quiz ? 'Edit Quiz' : 'Create New Quiz'}</h2>
+        <p className="text-gray-600">{quiz ? 'Update the quiz details and questions' : 'Build a comprehensive quiz for your students'}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -318,7 +337,7 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess }) => 
           </Button>
           <Button type="submit" className="flex items-center space-x-2">
             <Save className="w-4 h-4" />
-            <span>Create Quiz</span>
+            <span>{quiz ? 'Update Quiz' : 'Create Quiz'}</span>
           </Button>
         </div>
       </form>

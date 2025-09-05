@@ -118,15 +118,6 @@ export const LoginForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">Demo Accounts:</p>
-                <div className="space-y-1">
-                  <p><strong>Admin:</strong> admin / admin123</p>
-                  <p><strong>Student:</strong> student1 / student123</p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

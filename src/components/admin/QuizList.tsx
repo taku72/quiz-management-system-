@@ -5,11 +5,14 @@ import { quizService } from '@/lib/database';
 import { quizzes } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Edit, Trash2, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Edit, Trash2, Eye, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { CreateQuizForm } from './CreateQuizForm';
 
 export const QuizList: React.FC = () => {
-  const [quizList, setQuizList] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+   const [quizList, setQuizList] = useState<any[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [previewQuiz, setPreviewQuiz] = useState<any>(null);
+   const [editingQuiz, setEditingQuiz] = useState<any>(null);
 
   useEffect(() => {
     loadQuizzes();
@@ -61,6 +64,19 @@ export const QuizList: React.FC = () => {
         console.error('Error deleting quiz:', error);
       }
     }
+  };
+
+  const handlePreview = (quiz: any) => {
+    setPreviewQuiz(quiz);
+  };
+
+  const handleEdit = (quiz: any) => {
+    setEditingQuiz(quiz);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingQuiz(null);
+    loadQuizzes(); // Reload the quiz list
   };
 
   return (
@@ -125,6 +141,7 @@ export const QuizList: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="flex items-center space-x-2"
+                      onClick={() => handlePreview(quiz)}
                     >
                       <Eye className="w-4 h-4" />
                       <span>Preview</span>
@@ -133,6 +150,7 @@ export const QuizList: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="flex items-center space-x-2"
+                      onClick={() => handleEdit(quiz)}
                     >
                       <Edit className="w-4 h-4" />
                       <span>Edit</span>
@@ -177,6 +195,116 @@ export const QuizList: React.FC = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Preview: {previewQuiz.title}</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewQuiz(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Quiz Details</h4>
+                  <p className="text-gray-600">{previewQuiz.description}</p>
+                  <div className="mt-2 text-sm text-gray-500">
+                    Passing Score: {previewQuiz.passingScore}% | Questions: {previewQuiz.questions.length}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">Questions</h4>
+                  {previewQuiz.questions.map((question: any, index: number) => (
+                    <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+                      <h5 className="font-medium text-gray-900 mb-2">
+                        Question {index + 1}: {question.question}
+                      </h5>
+                      <div className="text-sm text-gray-600 mb-2">
+                        Type: {question.type} | Points: {question.points}
+                      </div>
+
+                      {question.type === 'multiple-choice' && question.options && (
+                        <div className="space-y-1">
+                          {question.options.map((option: string, optIndex: number) => (
+                            <div key={optIndex} className="flex items-center space-x-2">
+                              <span className={`w-4 h-4 rounded-full border-2 ${
+                                optIndex === question.correctAnswer
+                                  ? 'border-green-500 bg-green-100'
+                                  : 'border-gray-300'
+                              }`}></span>
+                              <span className={optIndex === question.correctAnswer ? 'font-medium text-green-700' : ''}>
+                                {option}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {question.type === 'true-false' && (
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className={`w-4 h-4 rounded-full border-2 ${
+                              question.correctAnswer === true
+                                ? 'border-green-500 bg-green-100'
+                                : 'border-gray-300'
+                            }`}></span>
+                            <span className={question.correctAnswer === true ? 'font-medium text-green-700' : ''}>
+                              True
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`w-4 h-4 rounded-full border-2 ${
+                              question.correctAnswer === false
+                                ? 'border-green-500 bg-green-100'
+                                : 'border-gray-300'
+                            }`}></span>
+                            <span className={question.correctAnswer === false ? 'font-medium text-green-700' : ''}>
+                              False
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Form */}
+      {editingQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Edit Quiz: {editingQuiz.title}</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingQuiz(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <CreateQuizForm
+                quiz={editingQuiz}
+                onSuccess={handleEditSuccess}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
