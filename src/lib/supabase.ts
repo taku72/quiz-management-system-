@@ -141,6 +141,128 @@ export interface Database {
           passed?: boolean;
         };
       };
+      chat_rooms: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          type: 'quiz' | 'study' | 'general';
+          quiz_id: string | null;
+          created_by: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description: string;
+          type: 'quiz' | 'study' | 'general';
+          quiz_id?: string | null;
+          created_by?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          type?: 'quiz' | 'study' | 'general';
+          quiz_id?: string | null;
+          created_by?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          room_id: string;
+          user_id: string;
+          message: string;
+          message_type: 'text' | 'system' | 'announcement';
+          quiz_context: any;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          user_id: string;
+          message: string;
+          message_type?: 'text' | 'system' | 'announcement';
+          quiz_context?: any;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          user_id?: string;
+          message?: string;
+          message_type?: 'text' | 'system' | 'announcement';
+          quiz_context?: any;
+          created_at?: string;
+        };
+      };
+      study_groups: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          quiz_id: string;
+          created_by: string;
+          max_members: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description: string;
+          quiz_id: string;
+          created_by: string;
+          max_members?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          quiz_id?: string;
+          created_by?: string;
+          max_members?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_study_groups: {
+        Row: {
+          id: string;
+          user_id: string;
+          group_id: string;
+          role: 'member' | 'moderator' | 'admin';
+          joined_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          group_id: string;
+          role?: 'member' | 'moderator' | 'admin';
+          joined_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          group_id?: string;
+          role?: 'member' | 'moderator' | 'admin';
+          joined_at?: string;
+        };
+      };
     };
   };
 }

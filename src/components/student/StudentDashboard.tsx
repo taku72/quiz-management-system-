@@ -2,26 +2,73 @@
 
 import React, { useState, useEffect } from 'react';
 import { quizzes, getQuizAttemptsByStudent } from '@/lib/data';
-import { quizService } from '@/lib/database';
+import { quizService, quizAttemptService } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { QuizAttempt } from './QuizAttempt';
 import { StudentHistory } from './StudentHistory';
-import { BookOpen, Clock, Trophy, Target } from 'lucide-react';
+import { ChatRoomList, ChatRoom } from '@/components/chat';
+import { BookOpen, Clock, Trophy, Target, MessageSquare } from 'lucide-react';
+import { ChatRoom as ChatRoomType } from '@/types';
 
-type ActiveTab = 'available' | 'history';
+type ActiveTab = 'available' | 'history' | 'chat';
 
 export const StudentDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('available');
-  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<ActiveTab>('available');
+    const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+    const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoomType | null>(null);
+    const [studentAttempts, setStudentAttempts] = useState<any[]>([]);
+    const { user } = useAuth();
+    const { unreadCount, markAsRead } = useNotifications(user?.id || '');
 
   useEffect(() => {
-    loadQuizzes();
-  }, []);
+     loadQuizzes();
+     loadStudentAttempts();
+   }, [user?.id]);
+
+   const loadStudentAttempts = async () => {
+     if (!user) return;
+
+     try {
+       // Try to fetch from database first
+       const dbAttempts = await quizAttemptService.getUserAttempts(user.id);
+       if (dbAttempts && dbAttempts.length > 0) {
+         // Transform database format to match component expectations
+         const transformedAttempts = dbAttempts.map((attempt: any) => ({
+           id: attempt.id,
+           quizId: attempt.quiz_id,
+           studentId: attempt.user_id,
+           answers: attempt.answers,
+           score: attempt.score,
+           passed: attempt.passed,
+           completedAt: attempt.completed_at,
+           timeSpent: attempt.time_taken
+         }));
+         setStudentAttempts(transformedAttempts);
+       } else {
+         // Fallback to mock data
+         const mockAttempts = getQuizAttemptsByStudent(user.id);
+         setStudentAttempts(mockAttempts);
+       }
+     } catch (error) {
+       console.log('Database fetch failed, using mock data:', error);
+       // Fallback to mock data
+       const mockAttempts = getQuizAttemptsByStudent(user.id);
+       setStudentAttempts(mockAttempts);
+     }
+   };
+
+   const handleTabChange = (tab: ActiveTab) => {
+     setActiveTab(tab);
+     if (tab === 'chat') {
+       // Clear unread message notifications when viewing chat
+       markAsRead();
+     }
+   };
 
   const loadQuizzes = async () => {
     try {
@@ -55,16 +102,14 @@ export const StudentDashboard: React.FC = () => {
 
   if (!user) return null;
 
-  const studentAttempts = getQuizAttemptsByStudent(user.id);
-  
-  const stats = {
-    totalAttempts: studentAttempts.length,
-    passedQuizzes: studentAttempts.filter(attempt => attempt.passed).length,
-    averageScore: studentAttempts.length > 0 
-      ? Math.round(studentAttempts.reduce((sum, attempt) => sum + attempt.score, 0) / studentAttempts.length)
-      : 0,
-    availableQuizzes: availableQuizzes.length
-  };
+   const stats = {
+     totalAttempts: studentAttempts.length,
+     passedQuizzes: studentAttempts.filter(attempt => attempt.passed).length,
+     averageScore: studentAttempts.length > 0
+       ? Math.round(studentAttempts.reduce((sum, attempt) => sum + attempt.score, 0) / studentAttempts.length)
+       : 0,
+     availableQuizzes: availableQuizzes.length
+   };
 
   if (selectedQuizId) {
     const quiz = availableQuizzes.find(q => q.id === selectedQuizId);
@@ -176,6 +221,36 @@ export const StudentDashboard: React.FC = () => {
         );
       case 'history':
         return <StudentHistory />;
+      case 'chat':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+            <div className="lg:col-span-1">
+              <ChatRoomList
+                onRoomSelect={setSelectedChatRoom}
+                selectedRoomId={selectedChatRoom?.id}
+                currentUserId={user?.id || ''}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              {selectedChatRoom ? (
+                <ChatRoom
+                  room={selectedChatRoom}
+                  currentUserId={user?.id || ''}
+                  isAdmin={user?.role === 'admin'}
+                  onClose={() => setSelectedChatRoom(null)}
+                />
+              ) : (
+                <Card className="h-full flex items-center justify-center">
+                  <CardContent className="text-center text-gray-500">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Select a chat room to start messaging</p>
+                    <p className="text-sm mt-2">Discuss quiz topics and get help from peers!</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -242,12 +317,13 @@ export const StudentDashboard: React.FC = () => {
         <nav className="flex space-x-8">
           {[
             { id: 'available', label: 'Available Quizzes', icon: BookOpen },
-            { id: 'history', label: 'My History', icon: Clock }
+            { id: 'history', label: 'My History', icon: Clock },
+            { id: 'chat', label: 'Study Chat', icon: MessageSquare }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id as ActiveTab)}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
+              onClick={() => handleTabChange(id as ActiveTab)}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm relative ${
                 activeTab === id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -255,6 +331,11 @@ export const StudentDashboard: React.FC = () => {
             >
               <Icon className="w-4 h-4" />
               <span>{label}</span>
+              {id === 'chat' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>

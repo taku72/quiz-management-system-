@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { addQuiz } from '@/lib/data';
-import { quizService } from '@/lib/database';
+import { quizService, chatService } from '@/lib/database';
 import { Quiz, Question } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -111,7 +111,7 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
         console.log('Quiz updated successfully');
       } else {
         // Create new quiz
-        await quizService.createQuiz({
+        const createdQuiz = await quizService.createQuiz({
           title: quizData.title,
           description: quizData.description,
           questions: quizData.questions,
@@ -119,6 +119,24 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
           passing_score: quizData.passingScore,
           created_by: '332f2cb8-74b1-4a97-92b3-3215879042e2' // Use actual user ID from database
         });
+
+        // Create associated chat room
+        if (createdQuiz) {
+          try {
+            await chatService.createChatRoom({
+              name: `${quizData.title} - Study Room`,
+              description: `Discussion room for ${quizData.title} quiz preparation and review`,
+              type: 'quiz',
+              quiz_id: createdQuiz.id,
+              created_by: '332f2cb8-74b1-4a97-92b3-3215879042e2'
+            });
+            console.log('Chat room created successfully');
+          } catch (chatError) {
+            console.log('Chat room creation failed:', chatError);
+            // Don't fail the quiz creation if chat room creation fails
+          }
+        }
+
         console.log('Quiz created successfully');
       }
     } catch (error) {

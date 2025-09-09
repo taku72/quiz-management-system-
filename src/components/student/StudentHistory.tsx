@@ -1,20 +1,62 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getQuizAttemptsByStudent, quizzes } from '@/lib/data';
+import { quizAttemptService } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { CheckCircle, XCircle, Clock, Trophy } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Trophy, Loader2 } from 'lucide-react';
 
 export const StudentHistory: React.FC = () => {
-  const { user } = useAuth();
+   const { user } = useAuth();
+   const [attempts, setAttempts] = useState<any[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
 
-  if (!user) return null;
+   useEffect(() => {
+     loadAttempts();
+   }, [user?.id]);
 
-  const attempts = getQuizAttemptsByStudent(user.id);
-  const sortedAttempts = attempts.sort((a, b) => 
-    new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-  );
+   const loadAttempts = async () => {
+     if (!user) return;
+
+     try {
+       setIsLoading(true);
+
+       // Try to fetch from database first
+       const dbAttempts = await quizAttemptService.getUserAttempts(user.id);
+       if (dbAttempts && dbAttempts.length > 0) {
+         // Transform database format to match component expectations
+         const transformedAttempts = dbAttempts.map((attempt: any) => ({
+           id: attempt.id,
+           quizId: attempt.quiz_id,
+           studentId: attempt.user_id,
+           answers: attempt.answers,
+           score: attempt.score,
+           passed: attempt.passed,
+           completedAt: attempt.completed_at,
+           timeSpent: attempt.time_taken
+         }));
+         setAttempts(transformedAttempts);
+       } else {
+         // Fallback to mock data
+         const mockAttempts = getQuizAttemptsByStudent(user.id);
+         setAttempts(mockAttempts);
+       }
+     } catch (error) {
+       console.log('Database fetch failed, using mock data:', error);
+       // Fallback to mock data
+       const mockAttempts = getQuizAttemptsByStudent(user.id);
+       setAttempts(mockAttempts);
+     } finally {
+       setIsLoading(false);
+     }
+   };
+
+   if (!user) return null;
+
+   const sortedAttempts = attempts.sort((a, b) =>
+     new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+   );
 
   const getQuizTitle = (quizId: string) => {
     return quizzes.find(q => q.id === quizId)?.title || 'Unknown Quiz';
@@ -25,6 +67,17 @@ export const StudentHistory: React.FC = () => {
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading quiz history...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -100,8 +153,7 @@ export const StudentHistory: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex justify-between items-center text-sm text-gray-600">
-                    <span>Attempt ID: {attempt.id}</span>
+                  <div className="flex justify-end items-center text-sm text-gray-600">
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4" />
                       <span>Completed {new Date(attempt.completedAt).toLocaleString()}</span>

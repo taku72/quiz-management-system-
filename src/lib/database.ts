@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { User, Quiz, QuizAttempt, Question } from '@/types';
+import { User, Quiz, QuizAttempt, Question, ChatRoom, ChatMessage, StudyGroup, UserStudyGroup } from '@/types';
 
 // Check if Supabase is properly configured
 const isSupabaseConfigured = () => {
@@ -319,7 +319,195 @@ export const analyticsService = {
       `)
       .order('completed_at', { ascending: false })
       .limit(limit);
-    
+
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Chat services
+export const chatService = {
+  // Chat room operations
+  async createChatRoom(roomData: {
+    name: string;
+    description: string;
+    type: 'quiz' | 'study' | 'general';
+    quiz_id?: string;
+    created_by: string;
+  }) {
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .insert([roomData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getChatRoomsByQuiz(quizId: string) {
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('quiz_id', quizId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAllActiveChatRooms() {
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getChatRoomById(id: string) {
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Chat message operations
+  async sendMessage(messageData: {
+    room_id: string;
+    user_id: string;
+    message: string;
+    message_type?: 'text' | 'system' | 'announcement';
+    quiz_context?: any;
+  }) {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert([messageData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getMessagesByRoom(roomId: string, limit = 50) {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select(`
+        *,
+        users (
+          username,
+          email
+        )
+      `)
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    // Transform snake_case to camelCase to match ChatMessage type
+    const transformedData = data?.map((msg: any) => ({
+      id: msg.id,
+      roomId: msg.room_id,
+      userId: msg.user_id,
+      message: msg.message,
+      messageType: msg.message_type,
+      quizContext: msg.quiz_context,
+      createdAt: msg.created_at,
+      user: (msg.message_type === 'system' || msg.message_type === 'announcement')
+        ? undefined
+        : msg.users ? {
+            username: msg.users.username,
+            email: msg.users.email
+          } : undefined
+    })) || [];
+
+    return transformedData.reverse();
+  },
+
+  // Study group operations
+  async createStudyGroup(groupData: {
+    name: string;
+    description: string;
+    quiz_id: string;
+    created_by: string;
+    max_members?: number;
+  }) {
+    const { data, error } = await supabase
+      .from('study_groups')
+      .insert([groupData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getStudyGroupsByQuiz(quizId: string) {
+    const { data, error } = await supabase
+      .from('study_groups')
+      .select('*')
+      .eq('quiz_id', quizId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async joinStudyGroup(userId: string, groupId: string) {
+    const { data, error } = await supabase
+      .from('user_study_groups')
+      .insert([{
+        user_id: userId,
+        group_id: groupId,
+        role: 'member'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getUserStudyGroups(userId: string) {
+    const { data, error } = await supabase
+      .from('user_study_groups')
+      .select(`
+        *,
+        study_groups (
+          name,
+          description,
+          quiz_id,
+          is_active
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getStudyGroupMembers(groupId: string) {
+    const { data, error } = await supabase
+      .from('user_study_groups')
+      .select(`
+        *,
+        users (
+          username,
+          email
+        )
+      `)
+      .eq('group_id', groupId);
+
     if (error) throw error;
     return data;
   }

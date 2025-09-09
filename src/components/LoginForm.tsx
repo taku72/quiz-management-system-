@@ -35,7 +35,7 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center px-4 relative"
       style={{
         backgroundImage: 'url(/images/quiz-background.svg)',
@@ -45,7 +45,7 @@ export const LoginForm: React.FC = () => {
       }}
     >
       {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
       
       {/* Content */}
       <div className="relative z-10">

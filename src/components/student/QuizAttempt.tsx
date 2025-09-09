@@ -7,7 +7,8 @@ import { quizAttemptService } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Clock, CheckCircle, XCircle, Award } from 'lucide-react';
+import { ChatRoomSuggestion, ChatRoom } from '@/components/chat';
+import { ArrowLeft, Clock, CheckCircle, XCircle, Award, X } from 'lucide-react';
 
 interface QuizAttemptProps {
   quiz: Quiz;
@@ -16,13 +17,15 @@ interface QuizAttemptProps {
 }
 
 export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCancel }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<(string | number | boolean)[]>([]);
-  const [startTime] = useState(Date.now());
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [results, setResults] = useState<{ score: number; passed: boolean; correctAnswers: boolean[] } | null>(null);
-  const { user } = useAuth();
+   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+   const [answers, setAnswers] = useState<(string | number | boolean)[]>([]);
+   const [startTime] = useState(Date.now());
+   const [timeElapsed, setTimeElapsed] = useState(0);
+   const [isSubmitted, setIsSubmitted] = useState(false);
+   const [results, setResults] = useState<{ score: number; passed: boolean; correctAnswers: boolean[] } | null>(null);
+   const [showChatModal, setShowChatModal] = useState(false);
+   const [selectedChatRoom, setSelectedChatRoom] = useState<any>(null);
+   const { user } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -119,6 +122,16 @@ export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCa
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleJoinChatRoom = (room: any) => {
+    setSelectedChatRoom(room);
+    setShowChatModal(true);
+  };
+
+  const handleCloseChatModal = () => {
+    setShowChatModal(false);
+    setSelectedChatRoom(null);
   };
 
   if (isSubmitted && results) {
@@ -246,122 +259,157 @@ export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCa
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={onCancel} className="flex items-center space-x-2">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </Button>
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4" />
-            <span>{formatTime(timeElapsed)}</span>
+    <div className="max-w-7xl mx-auto">
+      {/* Chat Modal */}
+      {showChatModal && selectedChatRoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">{selectedChatRoom.name}</h3>
+              <Button variant="outline" size="sm" onClick={handleCloseChatModal}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex-1 p-4">
+              <ChatRoom
+                room={selectedChatRoom}
+                currentUserId={user?.id || ''}
+                isAdmin={user?.role === 'admin'}
+                onClose={handleCloseChatModal}
+              />
+            </div>
           </div>
-          <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Quiz Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={onCancel} className="flex items-center space-x-2">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </Button>
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span>{formatTime(timeElapsed)}</span>
+              </div>
+              <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{quiz.title}</CardTitle>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%` }}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Question {currentQuestionIndex + 1}
+                </h3>
+                <p className="text-gray-700 mb-6">{currentQuestion.question}</p>
+
+                {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, index) => (
+                      <label
+                        key={index}
+                        className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                          answers[currentQuestionIndex] === index
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`question_${currentQuestionIndex}`}
+                          value={index}
+                          checked={answers[currentQuestionIndex] === index}
+                          onChange={() => handleAnswer(index)}
+                          className="text-blue-600 mr-3"
+                        />
+                        <span className="text-gray-900">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {currentQuestion.type === 'true-false' && (
+                  <div className="space-y-3">
+                    {[
+                      { value: true, label: 'True' },
+                      { value: false, label: 'False' }
+                    ].map(({ value, label }) => (
+                      <label
+                        key={label}
+                        className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                          answers[currentQuestionIndex] === value
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`question_${currentQuestionIndex}`}
+                          value={label}
+                          checked={answers[currentQuestionIndex] === value}
+                          onChange={() => handleAnswer(value)}
+                          className="text-blue-600 mr-3"
+                        />
+                        <span className="text-gray-900">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  Previous
+                </Button>
+
+                <div className="text-sm text-gray-600">
+                  Points: {currentQuestion.points}
+                </div>
+
+                <Button
+                  onClick={handleNext}
+                  disabled={!hasAnswered}
+                  className="flex items-center space-x-2"
+                >
+                  {isLastQuestion ? (
+                    <>
+                      <Award className="w-4 h-4" />
+                      <span>Submit Quiz</span>
+                    </>
+                  ) : (
+                    <span>Next</span>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chat Room Suggestion Sidebar */}
+        <div className="lg:col-span-1">
+          <ChatRoomSuggestion
+            quizId={quiz.id}
+            onJoinRoom={handleJoinChatRoom}
+          />
         </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{quiz.title}</CardTitle>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%` }}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Question {currentQuestionIndex + 1}
-            </h3>
-            <p className="text-gray-700 mb-6">{currentQuestion.question}</p>
-
-            {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
-              <div className="space-y-3">
-                {currentQuestion.options.map((option, index) => (
-                  <label
-                    key={index}
-                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                      answers[currentQuestionIndex] === index
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`question_${currentQuestionIndex}`}
-                      value={index}
-                      checked={answers[currentQuestionIndex] === index}
-                      onChange={() => handleAnswer(index)}
-                      className="text-blue-600 mr-3"
-                    />
-                    <span className="text-gray-900">{option}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {currentQuestion.type === 'true-false' && (
-              <div className="space-y-3">
-                {[
-                  { value: true, label: 'True' },
-                  { value: false, label: 'False' }
-                ].map(({ value, label }) => (
-                  <label
-                    key={label}
-                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                      answers[currentQuestionIndex] === value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`question_${currentQuestionIndex}`}
-                      value={label}
-                      checked={answers[currentQuestionIndex] === value}
-                      onChange={() => handleAnswer(value)}
-                      className="text-blue-600 mr-3"
-                    />
-                    <span className="text-gray-900">{label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-            <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-            >
-              Previous
-            </Button>
-            
-            <div className="text-sm text-gray-600">
-              Points: {currentQuestion.points}
-            </div>
-
-            <Button
-              onClick={handleNext}
-              disabled={!hasAnswered}
-              className="flex items-center space-x-2"
-            >
-              {isLastQuestion ? (
-                <>
-                  <Award className="w-4 h-4" />
-                  <span>Submit Quiz</span>
-                </>
-              ) : (
-                <span>Next</span>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

@@ -6,21 +6,26 @@ import { Button } from '@/components/ui/Button';
 import { QuizList } from './QuizList';
 import { CreateQuizForm } from './CreateQuizForm';
 import { QuizResults } from './QuizResults';
-import { Plus, BarChart3, BookOpen, Users } from 'lucide-react';
+import { ChatRoomList, ChatRoom } from '@/components/chat';
+import { Plus, BarChart3, BookOpen, Users, MessageSquare } from 'lucide-react';
 import { analyticsService } from '@/lib/database';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/contexts/AuthContext';
+import { ChatRoom as ChatRoomType } from '@/types';
 
-type ActiveTab = 'overview' | 'quizzes' | 'create' | 'results';
+type ActiveTab = 'overview' | 'quizzes' | 'create' | 'results' | 'chat';
 
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
-  const [stats, setStats] = useState({
-    totalQuizzes: 0,
-    totalAttempts: 0,
-    totalUsers: 0,
-    passRate: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
+   const { user } = useAuth();
+   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+   const [stats, setStats] = useState({
+     totalQuizzes: 0,
+     totalAttempts: 0,
+     totalUsers: 0,
+     passRate: 0
+   });
+   const [isLoading, setIsLoading] = useState(true);
+   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoomType | null>(null);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -116,6 +121,35 @@ export const AdminDashboard: React.FC = () => {
         return <CreateQuizForm onSuccess={() => setActiveTab('quizzes')} />;
       case 'results':
         return <QuizResults />;
+      case 'chat':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+            <div className="lg:col-span-1">
+              <ChatRoomList
+                onRoomSelect={setSelectedChatRoom}
+                selectedRoomId={selectedChatRoom?.id}
+                currentUserId={user?.id || ''}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              {selectedChatRoom ? (
+                <ChatRoom
+                  room={selectedChatRoom}
+                  currentUserId={user?.id || ''}
+                  isAdmin={user?.role === 'admin'}
+                  onClose={() => setSelectedChatRoom(null)}
+                />
+              ) : (
+                <Card className="h-full flex items-center justify-center">
+                  <CardContent className="text-center text-gray-500">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Select a chat room to start messaging</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -143,7 +177,8 @@ export const AdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'quizzes', label: 'Quizzes', icon: BookOpen },
             { id: 'create', label: 'Create Quiz', icon: Plus },
-            { id: 'results', label: 'Results', icon: Users }
+            { id: 'results', label: 'Results', icon: Users },
+            { id: 'chat', label: 'Chat', icon: MessageSquare }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}

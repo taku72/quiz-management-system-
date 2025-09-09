@@ -46,6 +46,52 @@ export interface RegisterData {
   role: 'admin' | 'student';
 }
 
+export interface ChatRoom {
+  id: string;
+  name: string;
+  description: string;
+  type: 'quiz' | 'study' | 'general';
+  quizId?: string;
+  createdBy: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  userId: string;
+  message: string;
+  messageType: 'text' | 'system' | 'announcement';
+  quizContext?: any;
+  createdAt: string;
+  user?: {
+    username: string;
+    email: string;
+  };
+}
+
+export interface StudyGroup {
+  id: string;
+  name: string;
+  description: string;
+  quizId: string;
+  createdBy: string;
+  maxMembers: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserStudyGroup {
+  id: string;
+  userId: string;
+  groupId: string;
+  role: 'member' | 'moderator' | 'admin';
+  joinedAt: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
