@@ -278,25 +278,25 @@ export const analyticsService = {
     const { data: quizzes, error: quizzesError } = await supabase
       .from('quizzes')
       .select('id');
-    
+
     const { data: attempts, error: attemptsError } = await supabase
       .from('quiz_attempts')
       .select('id, passed');
-    
+
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id');
-    
+
     if (quizzesError || attemptsError || usersError) {
       throw quizzesError || attemptsError || usersError;
     }
-    
+
     const totalQuizzes = quizzes?.length || 0;
     const totalAttempts = attempts?.length || 0;
     const totalUsers = users?.length || 0;
     const passedAttempts = attempts?.filter((a: any) => a.passed).length || 0;
     const passRate = totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0;
-    
+
     return {
       totalQuizzes,
       totalAttempts,
@@ -322,6 +322,178 @@ export const analyticsService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async getQuizPerformanceAnalytics() {
+    // Get quiz performance data
+    const { data: attempts, error } = await supabase
+      .from('quiz_attempts')
+      .select(`
+        *,
+        quizzes (
+          title,
+          questions
+        ),
+        users (
+          username
+        )
+      `)
+      .order('completed_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Calculate performance metrics
+    const quizStats = new Map();
+    const userStats = new Map();
+    const questionStats = new Map();
+    const timeStats: Array<{
+      date: string;
+      score: number;
+      timeTaken: number;
+    }> = [];
+
+    attempts?.forEach((attempt: any) => {
+      const quizId = attempt.quiz_id;
+      const userId = attempt.user_id;
+
+      // Quiz stats
+      if (!quizStats.has(quizId)) {
+        quizStats.set(quizId, {
+          title: attempt.quizzes?.title || 'Unknown Quiz',
+          totalAttempts: 0,
+          passedAttempts: 0,
+          averageScore: 0,
+          scores: []
+        });
+      }
+
+      const quizStat = quizStats.get(quizId);
+      quizStat.totalAttempts++;
+      if (attempt.passed) quizStat.passedAttempts++;
+      quizStat.scores.push(attempt.score);
+
+      // User stats
+      if (!userStats.has(userId)) {
+        userStats.set(userId, {
+          username: attempt.users?.username || 'Unknown User',
+          totalAttempts: 0,
+          passedAttempts: 0,
+          averageScore: 0,
+          scores: []
+        });
+      }
+
+      const userStat = userStats.get(userId);
+      userStat.totalAttempts++;
+      if (attempt.passed) userStat.passedAttempts++;
+      userStat.scores.push(attempt.score);
+
+      // Time stats
+      timeStats.push({
+        date: new Date(attempt.completed_at).toISOString().split('T')[0],
+        score: attempt.score,
+        timeTaken: attempt.time_taken
+      });
+
+      // Question analysis (if answers are stored as JSON)
+      if (attempt.answers && Array.isArray(attempt.answers)) {
+        attempt.answers.forEach((answer: any, index: number) => {
+          const questionKey = `${quizId}-${index}`;
+          if (!questionStats.has(questionKey)) {
+            questionStats.set(questionKey, {
+              quizId,
+              questionIndex: index,
+              totalAttempts: 0,
+              correctAttempts: 0,
+              difficulty: 0
+            });
+          }
+
+          const qStat = questionStats.get(questionKey);
+          qStat.totalAttempts++;
+
+          // Check if answer is correct (simplified logic)
+          const quizQuestions = attempt.quizzes?.questions || [];
+          if (quizQuestions[index]) {
+            const correctAnswer = quizQuestions[index].correctAnswer;
+            if (answer === correctAnswer) {
+              qStat.correctAttempts++;
+            }
+          }
+        });
+      }
+    });
+
+    // Calculate averages and finalize stats
+    quizStats.forEach(stat => {
+      stat.averageScore = stat.scores.reduce((a: number, b: number) => a + b, 0) / stat.scores.length;
+      stat.passRate = (stat.passedAttempts / stat.totalAttempts) * 100;
+    });
+
+    userStats.forEach(stat => {
+      stat.averageScore = stat.scores.reduce((a: number, b: number) => a + b, 0) / stat.scores.length;
+      stat.passRate = (stat.passedAttempts / stat.totalAttempts) * 100;
+    });
+
+    questionStats.forEach(stat => {
+      stat.accuracy = (stat.correctAttempts / stat.totalAttempts) * 100;
+      stat.difficulty = 100 - stat.accuracy; // Higher difficulty = lower accuracy
+    });
+
+    return {
+      quizStats: Array.from(quizStats.values()),
+      userStats: Array.from(userStats.values()),
+      questionStats: Array.from(questionStats.values()),
+      timeStats,
+      totalAttempts: attempts?.length || 0
+    };
+  },
+
+  async getQuizTrends(days = 30) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+
+    const { data: attempts, error } = await supabase
+      .from('quiz_attempts')
+      .select('*')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: true });
+
+    if (error) throw error;
+
+    // Group by date
+    const dailyStats = new Map();
+
+    attempts?.forEach((attempt: any) => {
+      const date = new Date(attempt.completed_at).toISOString().split('T')[0];
+
+      if (!dailyStats.has(date)) {
+        dailyStats.set(date, {
+          date,
+          attempts: 0,
+          passed: 0,
+          averageScore: 0,
+          scores: []
+        });
+      }
+
+      const stat = dailyStats.get(date);
+      stat.attempts++;
+      if (attempt.passed) stat.passed++;
+      stat.scores.push(attempt.score);
+    });
+
+    // Calculate averages
+    dailyStats.forEach(stat => {
+      stat.averageScore = stat.scores.length > 0
+        ? stat.scores.reduce((a: number, b: number) => a + b, 0) / stat.scores.length
+        : 0;
+      stat.passRate = stat.attempts > 0 ? (stat.passed / stat.attempts) * 100 : 0;
+    });
+
+    return Array.from(dailyStats.values());
   }
 };
 
@@ -432,6 +604,7 @@ export const chatService = {
 
     return transformedData.reverse();
   },
+
 
   // Study group operations
   async createStudyGroup(groupData: {

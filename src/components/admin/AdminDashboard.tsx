@@ -6,26 +6,39 @@ import { Button } from '@/components/ui/Button';
 import { QuizList } from './QuizList';
 import { CreateQuizForm } from './CreateQuizForm';
 import { QuizResults } from './QuizResults';
+import { RecentActivities } from './RecentActivities';
+import { QuizAnalyticsDashboard } from './QuizAnalyticsDashboard';
 import { ChatRoomList, ChatRoom } from '@/components/chat';
-import { Plus, BarChart3, BookOpen, Users, MessageSquare } from 'lucide-react';
+import { Plus, BarChart3, BookOpen, Users, MessageSquare, TrendingUp } from 'lucide-react';
 import { analyticsService } from '@/lib/database';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSystemNotifications } from '@/hooks/useSystemNotifications';
 import { ChatRoom as ChatRoomType } from '@/types';
 
-type ActiveTab = 'overview' | 'quizzes' | 'create' | 'results' | 'chat';
+type ActiveTab = 'overview' | 'analytics' | 'quizzes' | 'create' | 'results' | 'chat';
 
 export const AdminDashboard: React.FC = () => {
-   const { user } = useAuth();
-   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
-   const [stats, setStats] = useState({
-     totalQuizzes: 0,
-     totalAttempts: 0,
-     totalUsers: 0,
-     passRate: 0
-   });
-   const [isLoading, setIsLoading] = useState(true);
-   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoomType | null>(null);
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+    const [stats, setStats] = useState({
+      totalQuizzes: 0,
+      totalAttempts: 0,
+      totalUsers: 0,
+      passRate: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoomType | null>(null);
+
+    // System notifications for admins
+    useSystemNotifications({
+      userId: user?.id || '',
+      isAdmin: user?.role === 'admin',
+      onEvent: (event) => {
+        console.log('System event:', event);
+        // Could trigger a toast notification or update a notification badge
+      }
+    });
 
   useEffect(() => {
     const loadStats = async () => {
@@ -44,6 +57,8 @@ export const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'analytics':
+        return <QuizAnalyticsDashboard />;
       case 'overview':
         return (
           <div className="space-y-6">
@@ -99,20 +114,7 @@ export const AdminDashboard: React.FC = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    <p>Connect to Supabase to see recent activity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <RecentActivities limit={10} showFilters={true} realTime={true} />
           </div>
         );
       case 'quizzes':
@@ -175,6 +177,7 @@ export const AdminDashboard: React.FC = () => {
         <nav className="flex space-x-8">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'analytics', label: 'Analytics', icon: TrendingUp },
             { id: 'quizzes', label: 'Quizzes', icon: BookOpen },
             { id: 'create', label: 'Create Quiz', icon: Plus },
             { id: 'results', label: 'Results', icon: Users },

@@ -64,7 +64,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   const startEditing = (message: ChatMessage) => {
     setEditingMessageId(message.id);
-    setEditContent(message.message);
+    setEditContent(message.message || '');
   };
 
   const saveEdit = () => {
@@ -79,6 +79,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     setEditingMessageId(null);
     setEditContent('');
   };
+
 
   return (
     <div className="space-y-4 h-full overflow-y-auto p-4">

@@ -3,8 +3,9 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { LogOut, User, BookOpen } from 'lucide-react';
+
+import { LogOut, User, BookOpen, Bell } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
 
   if (!user) return <>{children}</>;
+
+  // Subscribe to global chat notifications for unread count badge
+  const { unreadCount, markAsRead } = useNotifications(user.id);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -35,7 +39,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <User className="w-4 h-4" />
                 <span>{user.name}</span>
               </div>
-              <ThemeToggle />
+
+
+              {/* Notification bell with badge (like Facebook lite) */}
+              <button
+                onClick={markAsRead}
+                className="relative inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] leading-[18px] text-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
               <Button
                 variant="outline"
                 size="sm"

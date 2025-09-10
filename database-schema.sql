@@ -73,14 +73,14 @@ CREATE TABLE chat_rooms (
 );
 
 CREATE TABLE chat_messages (
-   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-   room_id UUID REFERENCES chat_rooms(id) ON DELETE CASCADE,
-   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-   message TEXT NOT NULL,
-   message_type VARCHAR(50) DEFAULT 'text' CHECK (message_type IN ('text', 'system', 'announcement')),
-   quiz_context JSONB, -- Store quiz-related context like question references
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    room_id UUID REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'text' CHECK (message_type IN ('text', 'system', 'announcement')),
+    quiz_context JSONB, -- Store quiz-related context like question references
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+ );
 
 CREATE TABLE study_groups (
    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -120,10 +120,10 @@ CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON quizzes
    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_chat_rooms_updated_at BEFORE UPDATE ON chat_rooms
-   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_study_groups_updated_at BEFORE UPDATE ON study_groups
-   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

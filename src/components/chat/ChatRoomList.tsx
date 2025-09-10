@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { chatService } from '@/lib/database';
+import { chatService, quizService } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import { ChatRoom as ChatRoomType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { MessageSquare, Users, Plus } from 'lucide-react';
+import { MessageSquare, Users } from 'lucide-react';
 
 interface ChatRoomListProps {
   onRoomSelect: (room: ChatRoomType) => void;
@@ -67,13 +67,9 @@ export const ChatRoomList: React.FC<ChatRoomListProps> = ({
     }
   };
 
-  const handleCreateStudyGroup = async () => {
-    console.log('Study Group button clicked');
-    // This would open a modal to create a new study group
-    // For now, we'll just refresh the list
-    console.log('Refreshing chat rooms list');
-    await loadRooms();
-    console.log('Chat rooms refreshed');
+
+  const handleRoomSelect = (room: ChatRoomType) => {
+    onRoomSelect(room);
   };
 
   if (loading) {
@@ -95,21 +91,10 @@ export const ChatRoomList: React.FC<ChatRoomListProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="w-5 h-5" />
-            <span>Chat Rooms</span>
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCreateStudyGroup}
-            className="flex items-center space-x-1"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Study Group</span>
-          </Button>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <MessageSquare className="w-5 h-5" />
+          <span>Chat Rooms</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {rooms.length === 0 ? (
@@ -128,7 +113,7 @@ export const ChatRoomList: React.FC<ChatRoomListProps> = ({
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
-                onClick={() => onRoomSelect(room)}
+                onClick={() => handleRoomSelect(room)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -158,6 +143,7 @@ export const ChatRoomList: React.FC<ChatRoomListProps> = ({
           </div>
         )}
       </CardContent>
+
     </Card>
   );
 };
