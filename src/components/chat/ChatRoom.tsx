@@ -31,7 +31,21 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ room, currentUserId, isAdmin
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; username: string; timestamp: number }>>([]);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [presence, setPresence] = useState<PresenceState>({ onlineUserIds: [] });
+  const [announcementText, setAnnouncementText] = useState('');
+  const [announcementCount, setAnnouncementCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiCooldownUntil, setAiCooldownUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const AI_MIN_INTERVAL_MS = 3000; // throttle user requests
+  const lastAiAskAtRef = useRef<number>(0);
+
+  // Tick while cooldown is active to update countdown label
+  useEffect(() => {
+    if (!aiCooldownUntil) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [aiCooldownUntil]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -364,7 +378,166 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ room, currentUserId, isAdmin
           />
         </div>
 
-        <div className="flex-shrink-0 mt-4">
+        <div className="flex-shrink-0 mt-4 space-y-3">
+          {isAdmin && (
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={announcementText}
+                  onChange={(e) => setAnnouncementText(e.target.value)}
+                  placeholder="Write an announcement to all..."
+                  className="w-full px-3 py-2 pr-10 border border-yellow-300 rounded-md bg-yellow-50 text-yellow-900 placeholder-yellow-600 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                />
+                {announcementCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">
+                    {announcementCount}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const text = announcementText.trim();
+                  if (!text) return;
+
+                  // Optimistic announcement message
+                  const optimisticMessage: ChatMessage = {
+                    id: `temp-${Date.now()}`,
+                    roomId: room.id,
+                    userId: currentUserId,
+                    message: text,
+                    messageType: 'announcement',
+                    createdAt: new Date().toISOString()
+                  };
+
+                  setMessages(prev => [...prev, optimisticMessage]);
+                  setAnnouncementCount((c) => c + 1); // bump local counter immediately
+
+                  try {
+                    const result = await chatService.sendMessage({
+                      room_id: room.id,
+                      user_id: currentUserId,
+                      message: text,
+                      message_type: 'announcement'
+                    });
+
+                    // Replace optimistic with real message
+                    if (result) {
+                      setMessages(prev => prev.map(m =>
+                        m.id === optimisticMessage.id
+                          ? {
+                              id: result.id,
+                              roomId: result.room_id,
+                              userId: result.user_id,
+                              message: result.message,
+                              messageType: result.message_type,
+                              createdAt: result.created_at
+                            }
+                          : m
+                      ));
+                    }
+
+                    setAnnouncementText('');
+                  } catch (e) {
+                    console.error('Failed to send announcement', e);
+                    // Rollback optimistic message and counter on error
+                    setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+                    setAnnouncementCount((c) => Math.max(0, c - 1));
+                    alert('Failed to send announcement');
+                  }
+                }}
+                disabled={!announcementText.trim() || loading}
+                className="flex-shrink-0"
+              >
+                Announce
+              </Button>
+            </div>
+          )}
+
+          {/* AI Assistant controls */}
+          <div className="flex items-center justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isAiLoading || (aiCooldownUntil ? now < aiCooldownUntil : false)}
+              onClick={async () => {
+                // Debounce/throttle
+                const since = Date.now() - lastAiAskAtRef.current;
+                if (since < AI_MIN_INTERVAL_MS) {
+                  const waitMs = AI_MIN_INTERVAL_MS - since;
+                  alert(`Please wait ${Math.ceil(waitMs / 1000)}s before asking again.`);
+                  return;
+                }
+
+                let countdownMs = 0;
+                try {
+                  const question = prompt('Ask the AI assistant a question:') || '';
+                  const q = question.trim();
+                  if (!q) return;
+
+                  // Set loading and a short cooldown (3s)
+                  setIsAiLoading(true);
+                  lastAiAskAtRef.current = Date.now();
+                  countdownMs = 3000;
+                  setAiCooldownUntil(Date.now() + countdownMs);
+
+                  const recent = messages.slice(-10).map(m => `${m.user?.username || 'User'}: ${m.message}`).join('\n');
+                  const res = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: q, roomContext: recent }),
+                  });
+
+                  // Gracefully handle non-JSON responses
+                  let data: any = null;
+                  const contentType = res.headers.get('content-type') || '';
+                  if (contentType.includes('application/json')) {
+                    data = await res.json();
+                  } else {
+                    const text = await res.text();
+                    throw new Error(`Unexpected response: ${text.slice(0, 120)}...`);
+                  }
+
+                  if (!res.ok) {
+                    const msg = data?.error || 'AI request failed';
+                    // If rate limited, extend cooldown
+                    if (res.status === 429) {
+                      setAiCooldownUntil(Date.now() + 10_000); // 10s cooldown on 429
+                    }
+                    throw new Error(msg);
+                  }
+
+                  setMessages(prev => [
+                    ...prev,
+                    {
+                      id: `ai-${Date.now()}`,
+                      roomId: room.id,
+                      userId: 'ai',
+                      message: data.text || 'No response.',
+                      messageType: 'system',
+                      createdAt: new Date().toISOString(),
+                      user: { username: 'AI Assistant', email: '' },
+                    },
+                  ]);
+                } catch (e: any) {
+                  console.error(e);
+                  alert(e?.message || 'AI failed. Please try again.');
+                } finally {
+                  setIsAiLoading(false);
+                  // Keep cooldown running; if none set, set a minimal one to avoid spamming
+                  setAiCooldownUntil(prev => prev ?? (Date.now() + 2000));
+                }
+              }}
+            >
+              {isAiLoading
+                ? 'Asking...'
+                : aiCooldownUntil && now < aiCooldownUntil
+                  ? `Wait ${Math.ceil((aiCooldownUntil - now) / 1000)}s`
+                  : 'Ask AI'}
+            </Button>
+          </div>
+
           <MessageInput
             onSendMessage={handleSendMessage}
             placeholder={`Message ${room.name}...`}
