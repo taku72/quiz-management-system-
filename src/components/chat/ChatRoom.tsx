@@ -188,7 +188,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ room, currentUserId, isAdmin
         const ids = Object.keys(state).map(k => k.replace('user-', ''));
         setPresence({ onlineUserIds: ids });
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR') => {
         if (status === 'SUBSCRIBED') {
           await presenceChannel.track({ online: true, at: Date.now(), roomId: room.id });
         }

@@ -98,7 +98,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onCl
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Your browser doesn't support desktop notifications. Try using a modern browser like Chrome, Firefox, or Edge.
+            Your browser doesn&apos;t support desktop notifications. Try using a modern browser like Chrome, Firefox, or Edge.
           </p>
           {onClose && (
             <div className="mt-4 flex justify-end">

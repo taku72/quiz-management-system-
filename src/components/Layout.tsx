@@ -13,11 +13,10 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  // Call notifications hook unconditionally; it is a no-op when userId is empty
+  const { unreadCount, markAsRead } = useNotifications(user?.id || '');
 
   if (!user) return <>{children}</>;
-
-  // Subscribe to global chat notifications for unread count badge
-  const { unreadCount, markAsRead } = useNotifications(user.id);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
