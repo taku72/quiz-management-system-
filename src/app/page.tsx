@@ -5,6 +5,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Layout } from '@/components/Layout';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { StudentDashboard } from '@/components/student/StudentDashboard';
+import { ProfileForm } from '@/components/ProfileForm';
 
 export default function Home() {
   const { user, isLoading } = useAuth();

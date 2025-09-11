@@ -25,6 +25,9 @@ export interface Quiz {
   createdBy: string;
   createdAt: string;
   isActive: boolean;
+  // Optional time limit in minutes. Either camelCase (local) or snake_case (DB)
+  timeLimit?: number;
+  time_limit?: number;
 }
 
 export interface QuizAttempt {
@@ -97,5 +100,6 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   register: (data: RegisterData) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (updates: { name?: string; username?: string; email?: string }) => Promise<boolean>;
   isLoading: boolean;
 }

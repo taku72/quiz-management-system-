@@ -25,11 +25,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
       process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co';
 
+    // Determine if we should use local (mock) auth. Enabled by default in dev, opt-in via env in prod.
+    const isDev = process.env.NODE_ENV !== 'production';
+    const useLocalAuth = !isSupabaseConfigured && (process.env.NEXT_PUBLIC_USE_LOCAL_AUTH === 'true' || isDev);
+
     if (!isSupabaseConfigured) {
-      // Use localStorage for mock authentication
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+      if (useLocalAuth) {
+        // Use localStorage for mock authentication (development/testing only)
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+      } else {
+        // In production without Supabase, do not auto-login from localStorage
+        setUser(null);
+        localStorage.removeItem('currentUser');
       }
       setIsLoading(false);
       return;
@@ -72,14 +82,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error fetching user profile:', error);
         }
       } else if (!session) {
-        // Check if user is logged in via localStorage (fallback login)
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        } else {
-          setUser(null);
-          localStorage.removeItem('currentUser');
+        // Only use localStorage fallback when using local (mock) auth
+        const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+          process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co';
+        const isDev = process.env.NODE_ENV !== 'production';
+        const useLocalAuth = !isSupabaseConfigured && (process.env.NEXT_PUBLIC_USE_LOCAL_AUTH === 'true' || isDev);
+
+        if (useLocalAuth) {
+          const savedUser = localStorage.getItem('currentUser');
+          if (savedUser) {
+            setUser(JSON.parse(savedUser));
+            return;
+          }
         }
+        setUser(null);
+        localStorage.removeItem('currentUser');
       }
     });
 
@@ -234,11 +251,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('currentUser');
   };
 
+  const updateProfile = async (updates: { name?: string; username?: string; email?: string }): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      // Try database first
+      const updated = await userService.updateUser(user.id, updates);
+      const newUser = { ...user, ...updates } as User;
+
+      if (updated) {
+        setUser(newUser);
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        return true;
+      }
+
+      // Fallback: update local mock user
+      const saved = localStorage.getItem('currentUser');
+      if (saved) {
+        const current = JSON.parse(saved);
+        const merged = { ...current, ...updates };
+        localStorage.setItem('currentUser', JSON.stringify(merged));
+        setUser(merged);
+        return true;
+      }
+
+      setUser(newUser);
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      return true;
+    } catch (e) {
+      console.error('Update profile failed:', e);
+      return false;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     login,
     register,
     logout,
+    updateProfile,
     isLoading
   };
 

@@ -35,6 +35,17 @@ export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCa
     return () => clearInterval(timer);
   }, [startTime]);
 
+  // Auto-submit when time limit is reached (if defined)
+  useEffect(() => {
+    const limitMinutes = (quiz.timeLimit ?? quiz.time_limit);
+    if (!limitMinutes) return; // no time limit configured
+
+    const limitSeconds = limitMinutes * 60;
+    if (timeElapsed >= limitSeconds && !isSubmitted) {
+      handleSubmit();
+    }
+  }, [timeElapsed, quiz.timeLimit, quiz.time_limit, isSubmitted]);
+
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
   const hasAnswered = answers[currentQuestionIndex] !== undefined;
@@ -293,7 +304,14 @@ export const QuizAttempt: React.FC<QuizAttemptProps> = ({ quiz, onComplete, onCa
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>{formatTime(timeElapsed)}</span>
+                <span>
+                  {(() => {
+                    const limitMinutes = (quiz.timeLimit ?? quiz.time_limit);
+                    if (!limitMinutes) return formatTime(timeElapsed);
+                    const remaining = Math.max(0, limitMinutes * 60 - timeElapsed);
+                    return `${formatTime(remaining)}${remaining === 0 ? ' (time up)' : ''}`;
+                  })()}
+                </span>
               </div>
               <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
             </div>

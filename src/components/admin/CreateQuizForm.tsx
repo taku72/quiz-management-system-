@@ -18,6 +18,7 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
    const [title, setTitle] = useState(quiz?.title || '');
    const [description, setDescription] = useState(quiz?.description || '');
    const [passingScore, setPassingScore] = useState(quiz?.passingScore || 60);
+   const [timeLimit, setTimeLimit] = useState<number>(quiz?.time_limit ?? quiz?.timeLimit ?? Math.ceil((quiz?.questions?.length || 10) * 1.5));
    const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>(
      quiz?.questions ? quiz.questions.map((q: any) => ({ ...q, id: undefined })) : []
    );
@@ -59,6 +60,7 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
     if (!description.trim()) newErrors.description = 'Description is required';
     if (passingScore < 0 || passingScore > 100) newErrors.passingScore = 'Passing score must be between 0 and 100';
     if (questions.length === 0) newErrors.questions = 'At least one question is required';
+    if (timeLimit <= 0) newErrors.timeLimit = 'Time limit must be greater than 0 minutes';
 
     questions.forEach((question, index) => {
       if (!question.question.trim()) {
@@ -95,7 +97,8 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
       passingScore,
       createdBy: '1', // Admin ID
       createdAt: quiz?.createdAt || new Date().toISOString(),
-      isActive: quiz?.isActive ?? true
+      isActive: quiz?.isActive ?? true,
+      timeLimit
     };
 
     try {
@@ -106,7 +109,8 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
           description: quizData.description,
           questions: quizData.questions,
           passingScore: quizData.passingScore,
-          isActive: quizData.isActive
+          isActive: quizData.isActive,
+          time_limit: timeLimit
         });
         console.log('Quiz updated successfully');
       } else {
@@ -115,7 +119,7 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
           title: quizData.title,
           description: quizData.description,
           questions: quizData.questions,
-          time_limit: Math.ceil(quizData.questions.length * 1.5), // Estimated time in minutes
+          time_limit: timeLimit,
           passing_score: quizData.passingScore,
           created_by: '332f2cb8-74b1-4a97-92b3-3215879042e2' // Use actual user ID from database
         });
@@ -205,6 +209,15 @@ export const CreateQuizForm: React.FC<CreateQuizFormProps> = ({ onSuccess, quiz 
               min="0"
               max="100"
               error={errors.passingScore}
+            />
+
+            <Input
+              label="Time Limit (minutes)"
+              type="number"
+              value={timeLimit}
+              onChange={(e) => setTimeLimit(Number(e.target.value))}
+              min="1"
+              error={errors.timeLimit}
             />
           </CardContent>
         </Card>

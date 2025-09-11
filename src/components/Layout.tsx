@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 
 import { LogOut, User, BookOpen, Bell } from 'lucide-react';
+import { ProfileForm } from '@/components/ProfileForm';
 import { useNotifications } from '@/hooks/useNotifications';
 
 interface LayoutProps {
@@ -15,6 +16,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   // Call notifications hook unconditionally; it is a no-op when userId is empty
   const { unreadCount, markAsRead } = useNotifications(user?.id || '');
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
 
   if (!user) return <>{children}</>;
 
@@ -34,11 +36,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
+                aria-label="Open profile"
+                title="Open profile"
+              >
                 <User className="w-4 h-4" />
                 <span>{user.name}</span>
-              </div>
-
+              </button>
 
               {/* Notification bell with badge (like Facebook lite) */}
               <button
@@ -71,6 +77,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
+
+        {/* Simple modal for profile */}
+        {isProfileOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setIsProfileOpen(false)} />
+            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-xl mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Edit Profile</h2>
+                <button
+                  onClick={() => setIsProfileOpen(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+              <ProfileForm />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

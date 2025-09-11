@@ -66,8 +66,24 @@ export const userService = {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, role, password, created_at, updated_at')
+      .select('id, username, email, role, password, created_at, updated_at, name')
       .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateUser(id: string, updates: { username?: string; email?: string; name?: string }) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select('id, username, email, role, created_at, updated_at, name')
       .single();
 
     if (error) throw error;

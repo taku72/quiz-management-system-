@@ -11,6 +11,7 @@ import { QuizAttempt } from './QuizAttempt';
 import { StudentHistory } from './StudentHistory';
 import { ChatRoomList, ChatRoom } from '@/components/chat';
 import { BookOpen, Clock, Trophy, Target, MessageSquare } from 'lucide-react';
+import { StudentQuizCard } from './StudentQuizCard';
 import { ChatRoom as ChatRoomType } from '@/types';
 
 type ActiveTab = 'available' | 'history' | 'chat';
@@ -138,81 +139,21 @@ export const StudentDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {availableQuizzes.map((quiz) => {
                   const hasAttempted = studentAttempts.some(attempt => attempt.quizId === quiz.id);
                   const lastAttempt = studentAttempts
                     .filter(attempt => attempt.quizId === quiz.id)
                     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0];
-                  const hasPassed = lastAttempt?.passed || false;
 
                   return (
-                    <Card key={quiz.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                            <p className="text-gray-600 mt-1">{quiz.description}</p>
-                          </div>
-                          {hasAttempted && (
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              lastAttempt?.passed 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {lastAttempt?.passed ? 'Passed' : 'Failed'}
-                            </span>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="text-center p-3 bg-blue-50 rounded-lg">
-                            <p className="text-2xl font-bold text-blue-600">{quiz.questions.length}</p>
-                            <p className="text-sm text-blue-800">Questions</p>
-                          </div>
-                          <div className="text-center p-3 bg-green-50 rounded-lg">
-                            <p className="text-2xl font-bold text-green-600">{quiz.passingScore}%</p>
-                            <p className="text-sm text-green-800">Pass Score</p>
-                          </div>
-                          <div className="text-center p-3 bg-purple-50 rounded-lg">
-                            <p className="text-2xl font-bold text-purple-600">
-                              {quiz.questions.reduce((sum: number, q: any) => sum + q.points, 0)}
-                            </p>
-                            <p className="text-sm text-purple-800">Total Points</p>
-                          </div>
-                        </div>
-
-                        {hasAttempted && lastAttempt && (
-                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600">
-                              Last attempt: <span className="font-medium">{lastAttempt.score}%</span> on{' '}
-                              {new Date(lastAttempt.completedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between items-center">
-                          <div className="text-sm text-gray-600">
-                            <p>Estimated time: {Math.ceil(quiz.questions.length * 1.5)} minutes</p>
-                          </div>
-                          {hasPassed ? (
-                            <div className="flex items-center space-x-2 text-green-600">
-                              <BookOpen className="w-4 h-4" />
-                              <span className="font-medium">Completed</span>
-                            </div>
-                          ) : (
-                            <Button
-                              onClick={() => setSelectedQuizId(quiz.id)}
-                              className="flex items-center space-x-2"
-                            >
-                              <BookOpen className="w-4 h-4" />
-                              <span>{hasAttempted ? 'Retake Quiz' : 'Start Quiz'}</span>
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <StudentQuizCard
+                      key={quiz.id}
+                      quiz={quiz}
+                      hasAttempted={hasAttempted}
+                      lastAttempt={lastAttempt || null}
+                      onStart={() => setSelectedQuizId(quiz.id)}
+                    />
                   );
                 })}
               </div>
