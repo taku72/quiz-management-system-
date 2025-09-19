@@ -62,7 +62,7 @@ export const QuizResults: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Quiz Results</h2>
           <p className="text-gray-600">Monitor student performance and quiz analytics</p>
@@ -85,7 +85,7 @@ export const QuizResults: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -105,8 +105,8 @@ export const QuizResults: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Average Score</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.avgScore}%</p>
               </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 font-bold">%</span>
+              <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full">
+                <span className="font-bold text-orange-600">%</span>
               </div>
             </div>
           </CardContent>
@@ -137,8 +137,8 @@ export const QuizResults: React.FC = () => {
         </CardHeader>
         <CardContent>
           {filteredAttempts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <div className="py-8 text-center text-gray-500">
+              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>No quiz attempts found</p>
               <p className="text-sm">Results will appear here once students start taking quizzes</p>
             </div>
@@ -147,22 +147,22 @@ export const QuizResults: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Student
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Quiz
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Score
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Result
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Time Spent
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Completed At
                     </th>
                   </tr>
@@ -176,7 +176,6 @@ export const QuizResults: React.FC = () => {
                         <div className="text-sm font-medium text-gray-900">
                           {attempt.users?.username || getStudentName(attempt.studentId || attempt.user_id)}
                         </div>
-                        <div className="text-sm text-gray-500">ID: {attempt.studentId || attempt.user_id}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
@@ -195,13 +194,13 @@ export const QuizResults: React.FC = () => {
                           {attempt.passed ? 'Passed' : 'Failed'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                         {attempt.time_taken ? 
                           `${Math.floor(attempt.time_taken / 60)}m ${attempt.time_taken % 60}s` :
                           `${Math.floor((attempt.timeSpent || 0) / 60)}m ${(attempt.timeSpent || 0) % 60}s`
                         }
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {new Date(attempt.completed_at || attempt.completedAt).toLocaleDateString()} {new Date(attempt.completed_at || attempt.completedAt).toLocaleTimeString()}
                       </td>
                     </tr>

@@ -32,15 +32,15 @@ export const StudentQuizCard: React.FC<StudentQuizCardProps> = ({ quiz, hasAttem
   const passed = !!lastAttempt?.passed;
 
   return (
-    <Card className="overflow-hidden group transition-all hover:shadow-lg border border-gray-200">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white">
+    <Card className="overflow-hidden transition-all border border-gray-200 group hover:shadow-lg">
+      <div className="p-5 text-white bg-gradient-to-r from-blue-600 to-indigo-600">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg truncate">{quiz.title}</CardTitle>
-            <p className="opacity-90 text-sm mt-1 line-clamp-2">{quiz.description}</p>
+            <p className="mt-1 text-sm opacity-90 line-clamp-2">{quiz.description}</p>
           </div>
           {isNew && (
-            <span className="ml-3 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-white/15 text-white border border-white/20">
+            <span className="inline-flex items-center gap-1 px-2 py-1 ml-3 text-xs font-medium text-white border rounded-full bg-white/15 border-white/20">
               <Flame className="w-3 h-3" /> New
             </span>
           )}
@@ -48,26 +48,26 @@ export const StudentQuizCard: React.FC<StudentQuizCardProps> = ({ quiz, hasAttem
       </div>
 
       <CardContent className="p-5">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="rounded-md bg-blue-50 text-blue-800 p-3">
+        <div className="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
+          <div className="p-3 text-blue-800 rounded-md bg-blue-50">
             <div className="flex items-center gap-2 text-sm">
               <BookOpen className="w-4 h-4" /> Questions
             </div>
             <p className="text-2xl font-bold">{questionCount}</p>
           </div>
-          <div className="rounded-md bg-green-50 text-green-800 p-3">
+          <div className="p-3 text-green-800 rounded-md bg-green-50">
             <div className="flex items-center gap-2 text-sm">
               <Target className="w-4 h-4" /> Pass
             </div>
             <p className="text-2xl font-bold">{passScore}%</p>
           </div>
-          <div className="rounded-md bg-purple-50 text-purple-800 p-3">
+          <div className="p-3 text-purple-800 rounded-md bg-purple-50">
             <div className="flex items-center gap-2 text-sm">
               <Trophy className="w-4 h-4" /> Points
             </div>
             <p className="text-2xl font-bold">{totalPoints}</p>
           </div>
-          <div className="rounded-md bg-amber-50 text-amber-800 p-3">
+          <div className="p-3 rounded-md bg-amber-50 text-amber-800">
             <div className="flex items-center gap-2 text-sm">
               <Clock className="w-4 h-4" /> Time
             </div>
@@ -76,7 +76,7 @@ export const StudentQuizCard: React.FC<StudentQuizCardProps> = ({ quiz, hasAttem
         </div>
 
         {hasAttempted && lastAttempt && (
-          <div className="mb-4 p-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700 flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 mb-4 text-sm text-gray-700 border border-gray-200 rounded-md bg-gray-50">
             <span>
               Last attempt: <span className="font-medium">{lastAttempt.score}%</span> on {new Date(lastAttempt.completedAt).toLocaleDateString()}
             </span>
@@ -88,8 +88,7 @@ export const StudentQuizCard: React.FC<StudentQuizCardProps> = ({ quiz, hasAttem
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-500">By: {quiz.createdBy ?? quiz.created_by ?? "—"}</div>
+        <div className="flex items-center justify-end">
           {passed ? (
             <div className="inline-flex items-center gap-2 text-green-600">
               <Trophy className="w-4 h-4" />
@@ -97,7 +96,7 @@ export const StudentQuizCard: React.FC<StudentQuizCardProps> = ({ quiz, hasAttem
             </div>
           ) : (
             <Button onClick={onStart} className="group/button">
-              <BookOpen className="w-4 h-4 mr-2 group-hover/button:scale-110 transition-transform" />
+              <BookOpen className="w-4 h-4 mr-2 transition-transform group-hover/button:scale-110" />
               {hasAttempted ? "Retake Quiz" : "Start Quiz"}
             </Button>
           )}
