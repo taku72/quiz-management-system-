@@ -7,9 +7,25 @@ CREATE TABLE users (
   username VARCHAR(50) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
   role VARCHAR(20) CHECK (role IN ('admin', 'student')) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create pending_registrations table for student approval workflow
+CREATE TABLE pending_registrations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  role VARCHAR(20) CHECK (role IN ('admin', 'student')) NOT NULL DEFAULT 'student',
+  status VARCHAR(20) CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL DEFAULT 'pending',
+  requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  rejection_reason TEXT
 );
 
 -- Create quizzes table
@@ -46,6 +62,12 @@ CREATE INDEX idx_quizzes_created_by ON quizzes(created_by);
 CREATE INDEX idx_quiz_attempts_quiz_id ON quiz_attempts(quiz_id);
 CREATE INDEX idx_quiz_attempts_user_id ON quiz_attempts(user_id);
 CREATE INDEX idx_quiz_attempts_completed_at ON quiz_attempts(completed_at);
+
+-- Pending registrations indexes
+CREATE INDEX idx_pending_registrations_status ON pending_registrations(status);
+CREATE INDEX idx_pending_registrations_requested_at ON pending_registrations(requested_at);
+CREATE INDEX idx_pending_registrations_username ON pending_registrations(username);
+CREATE INDEX idx_pending_registrations_email ON pending_registrations(email);
 
 -- Chat integration indexes
 CREATE INDEX idx_chat_rooms_quiz_id ON chat_rooms(quiz_id);
@@ -133,6 +155,7 @@ ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE study_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_study_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pending_registrations ENABLE ROW LEVEL SECURITY;
 
 -- Simple RLS policies (allow all operations for authenticated users)
 CREATE POLICY "Allow all operations on users" ON users FOR ALL USING (true);
@@ -142,6 +165,7 @@ CREATE POLICY "Allow all operations on chat_rooms" ON chat_rooms FOR ALL USING (
 CREATE POLICY "Allow all operations on chat_messages" ON chat_messages FOR ALL USING (true);
 CREATE POLICY "Allow all operations on study_groups" ON study_groups FOR ALL USING (true);
 CREATE POLICY "Allow all operations on user_study_groups" ON user_study_groups FOR ALL USING (true);
+CREATE POLICY "Allow all operations on pending_registrations" ON pending_registrations FOR ALL USING (true);
 
 -- Insert sample admin user with password
 INSERT INTO users (id, username, email, password, role) VALUES 

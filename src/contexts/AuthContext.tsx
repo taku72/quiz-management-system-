@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthContextType, RegisterData } from '@/types';
+import { User, AuthContextType, RegisterData, LoginResult } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { userService } from '@/lib/database';
+import { userService, pendingRegistrationService } from '@/lib/database';
 import { users, addUser, findUserByUsername, findUserByEmail } from '@/lib/data';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     setIsLoading(true);
 
     try {
@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userWithoutPassword);
         localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
         setIsLoading(false);
-        return true;
+        return { success: true };
       }
 
       // Try database lookup
@@ -129,12 +129,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Database user lookup result:', dbUser);
 
         if (dbUser && dbUser.password === password) {
+          // For students, check if they have been approved
+          if (dbUser.role === 'student') {
+            // Check if there's a pending registration for this user
+            const pendingReg = await pendingRegistrationService.getPendingRegistrationByUsername(trimmedUsername);
+            
+            if (pendingReg) {
+              if (pendingReg.status === 'pending') {
+                console.log('Student account is pending approval');
+                setIsLoading(false);
+                return {
+                  success: false,
+                  error: 'pending_approval',
+                  message: 'Your account is pending admin approval. Please wait for approval before logging in.'
+                };
+              } else if (pendingReg.status === 'rejected') {
+                console.log('Student account was rejected');
+                setIsLoading(false);
+                return {
+                  success: false,
+                  error: 'rejected',
+                  message: pendingReg.rejection_reason || 'Your account registration was rejected. Please contact an administrator.'
+                };
+              }
+              // If status is 'approved', continue with login
+            }
+          }
+
           const userWithoutPassword = { ...dbUser };
           delete (userWithoutPassword as any).password;
           setUser(userWithoutPassword);
           localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
           setIsLoading(false);
-          return true;
+          return { success: true };
         }
       } catch (dbError) {
         console.log('Database lookup failed:', dbError);
@@ -142,11 +169,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Login failed - no matching user found');
       setIsLoading(false);
-      return false;
+      return {
+        success: false,
+        error: 'invalid_credentials',
+        message: 'Invalid username or password.'
+      };
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
-      return false;
+      return {
+        success: false,
+        error: 'unknown',
+        message: 'An unexpected error occurred. Please try again.'
+      };
     }
   };
 
@@ -157,21 +192,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedEmail = data.email.trim();
 
     try {
-      // Use database authentication
-      // Check if username or email already exists in database
+      // Check if username or email already exists in users table
       const existingByUsername = await userService.getUserByUsername(trimmedUsername);
       const existingByEmail = await userService.getUserByEmail(trimmedEmail);
+
+      // Check if username or email already exists in pending registrations
+      const pendingByUsername = await pendingRegistrationService.getPendingRegistrationByUsername(trimmedUsername);
+      const pendingByEmail = await pendingRegistrationService.getPendingRegistrationByEmail(trimmedEmail);
 
       // Also check mock data for duplicates
       const mockUserByUsername = findUserByUsername(trimmedUsername);
       const mockUserByEmail = findUserByEmail(trimmedEmail);
 
-      if (existingByUsername || existingByEmail || mockUserByUsername || mockUserByEmail) {
+      if (existingByUsername || existingByEmail || pendingByUsername || pendingByEmail || mockUserByUsername || mockUserByEmail) {
         setIsLoading(false);
         return false;
       }
 
-      // Create user for mock data
+      // For student registrations, create a pending registration instead of direct user creation
+      if (data.role === 'student') {
+        try {
+          const pendingRegistration = await pendingRegistrationService.createPendingRegistration({
+            username: trimmedUsername,
+            email: trimmedEmail,
+            password: data.password,
+            name: data.name,
+            role: data.role
+          });
+
+          if (pendingRegistration) {
+            console.log('Pending registration created:', pendingRegistration);
+            setIsLoading(false);
+            // Return true to indicate successful registration submission
+            // Note: User won't be logged in until approved
+            return true;
+          }
+        } catch (dbError) {
+          console.log('Database pending registration creation failed:', dbError);
+        }
+      }
+
+      // For admin registrations or fallback, create user directly (existing logic)
       const newUser: User = {
         id: Date.now().toString(),
         username: trimmedUsername,
@@ -182,12 +243,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       try {
-        // Save to database (with password)
+        // Save to database (with password) - only for admin or fallback
         const dbUser = await userService.createUser({
           username: trimmedUsername,
           email: trimmedEmail,
           role: data.role,
-          password: data.password
+          password: data.password,
+          name: data.name
         });
         console.log('User saved to database:', dbUser);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginForm } from '@/components/LoginForm';
+import { LandingPage } from '@/components/LandingPage';
 import { Layout } from '@/components/Layout';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { StudentDashboard } from '@/components/student/StudentDashboard';
@@ -12,14 +12,14 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-b-2 border-blue-600 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!user) {
-    return <LoginForm />;
+    return <LandingPage />;
   }
 
   return (

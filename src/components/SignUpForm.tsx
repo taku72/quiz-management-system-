@@ -18,11 +18,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    role: 'student' as 'admin' | 'student'
+    confirmPassword: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { register } = useAuth();
 
   const validateForm = () => {
@@ -93,11 +93,13 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        role: formData.role
+        role: 'student'
       });
 
-      if (!success) {
-        setErrors({ submit: 'Registration failed. Username may already exist.' });
+      if (success) {
+        setRegistrationSuccess(true);
+      } else {
+        setErrors({ submit: 'Registration failed. Username or email may already exist.' });
       }
     } catch (error) {
       setErrors({ submit: 'An unexpected error occurred. Please try again.' });
@@ -106,9 +108,55 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
     }
   };
 
+  // Show success message for student registrations
+  if (registrationSuccess) {
+    return (
+      <div
+        className="relative flex items-center justify-center min-h-screen px-4"
+        style={{
+          backgroundImage: 'url(/images/quiz-background.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/20"></div>
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
+                <Check className="w-6 h-6 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl">Registration Submitted</CardTitle>
+              <p className="mt-2 text-gray-600">Your account is pending approval</p>
+            </CardHeader>
+            <CardContent>
+              <div className="px-4 py-3 mb-6 text-sm text-green-700 border border-green-200 rounded-md bg-green-50">
+                <p className="mb-2 font-medium">Registration Successful!</p>
+                <p>Your student account has been submitted for admin approval. You will be able to log in once an administrator approves your registration.</p>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={onBackToLogin}
+                className="flex items-center justify-center w-full space-x-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Login</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
-      className="min-h-screen flex items-center justify-center px-4 relative"
+      className="relative flex items-center justify-center min-h-screen px-4"
       style={{
         backgroundImage: 'url(/images/quiz-background.svg)',
         backgroundSize: 'cover',
@@ -123,16 +171,16 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
       <div className="relative z-10">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
             <UserPlus className="w-6 h-6 text-green-600" />
           </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
-          <p className="text-gray-600 mt-2">Join the Quiz Management System</p>
+          <p className="mt-2 text-gray-600">Join the Quiz Management System</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-              <User className="absolute left-3 top-9 w-4 h-4 text-gray-500 z-10" />
+              <User className="absolute z-10 w-4 h-4 text-gray-500 left-3 top-9" />
               <Input
                 label="Full Name"
                 type="text"
@@ -146,7 +194,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
             </div>
 
             <div className="relative">
-              <User className="absolute left-3 top-9 w-4 h-4 text-gray-500 z-10" />
+              <User className="absolute z-10 w-4 h-4 text-gray-500 left-3 top-9" />
               <Input
                 label="Username"
                 type="text"
@@ -160,7 +208,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
             </div>
 
             <div className="relative">
-              <Mail className="absolute left-3 top-9 w-4 h-4 text-gray-500 z-10" />
+              <Mail className="absolute z-10 w-4 h-4 text-gray-500 left-3 top-9" />
               <Input
                 label="Email Address"
                 type="email"
@@ -173,48 +221,10 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Account Type
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.role === 'student'
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-gray-300 hover:border-gray-400 bg-white'
-                }`}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="student"
-                    checked={formData.role === 'student'}
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                    className="w-4 h-4 text-blue-600 mr-3"
-                    disabled={isLoading}
-                  />
-                  <span className="text-sm font-semibold text-gray-800">Student</span>
-                </label>
-                <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.role === 'admin'
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-gray-300 hover:border-gray-400 bg-white'
-                }`}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="admin"
-                    checked={formData.role === 'admin'}
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                    className="w-4 h-4 text-blue-600 mr-3"
-                    disabled={isLoading}
-                  />
-                  <span className="text-sm font-semibold text-gray-800">Admin</span>
-                </label>
-              </div>
-            </div>
+
 
             <div className="relative">
-              <Lock className="absolute left-3 top-9 w-4 h-4 text-gray-500 z-10" />
+              <Lock className="absolute z-10 w-4 h-4 text-gray-500 left-3 top-9" />
               <Input
                 label="Password"
                 type="text"
@@ -241,7 +251,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
                         </div>
                         
                         {/* Progress Bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full h-2 bg-gray-200 rounded-full">
                           <div 
                             className={`h-2 rounded-full transition-all duration-300 ${
                               strength.score === 5 ? 'bg-green-500' :
@@ -284,7 +294,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3 top-9 w-4 h-4 text-gray-500 z-10" />
+              <Lock className="absolute z-10 w-4 h-4 text-gray-500 left-3 top-9" />
               <Input
                 label="Confirm Password"
                 type="text"
@@ -298,7 +308,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
             </div>
 
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              <div className="px-4 py-3 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
                 {errors.submit}
               </div>
             )}
@@ -312,11 +322,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="pt-6 mt-6 border-t border-gray-200">
             <Button
               variant="outline"
               onClick={onBackToLogin}
-              className="w-full flex items-center justify-center space-x-2"
+              className="flex items-center justify-center w-full space-x-2"
               disabled={isLoading}
             >
               <ArrowLeft className="w-4 h-4" />

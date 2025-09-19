@@ -10,14 +10,14 @@ const isSupabaseConfigured = () => {
 
 // User operations
 export const userService = {
-  async createUser(userData: { id?: string; username: string; email: string; role: string; password?: string }) {
+  async createUser(userData: { id?: string; username: string; email: string; role: string; password?: string; name?: string }) {
     if (!isSupabaseConfigured()) {
       return null;
     }
 
     const insertData = userData.id
-      ? { id: userData.id, username: userData.username, email: userData.email, role: userData.role, password: userData.password }
-      : { username: userData.username, email: userData.email, role: userData.role, password: userData.password };
+      ? { id: userData.id, username: userData.username, email: userData.email, role: userData.role, password: userData.password, name: userData.name }
+      : { username: userData.username, email: userData.email, role: userData.role, password: userData.password, name: userData.name };
 
     const { data, error } = await supabase
       .from('users')
@@ -101,6 +101,163 @@ export const userService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    return data;
+  }
+};
+
+// Pending registrations operations
+export const pendingRegistrationService = {
+  async createPendingRegistration(userData: {
+    username: string;
+    email: string;
+    password: string;
+    name: string;
+    role?: string;
+  }) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .insert([{
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+        role: userData.role || 'student',
+        status: 'pending'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getPendingRegistrations() {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAllRegistrations() {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .order('requested_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async approveRegistration(id: string, reviewedBy: string) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    // Get the pending registration
+    const { data: pendingReg, error: fetchError } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!pendingReg) throw new Error('Pending registration not found');
+
+    // Create the user in the users table
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert([{
+        username: pendingReg.username,
+        email: pendingReg.email,
+        password: pendingReg.password,
+        role: pendingReg.role
+      }])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    // Update the pending registration status
+    const { data: updatedReg, error: updateError } = await supabase
+      .from('pending_registrations')
+      .update({
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: reviewedBy
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    return { user: newUser, registration: updatedReg };
+  },
+
+  async rejectRegistration(id: string, reviewedBy: string, rejectionReason?: string) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .update({
+        status: 'rejected',
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: reviewedBy,
+        rejection_reason: rejectionReason
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getPendingRegistrationByUsername(username: string) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async getPendingRegistrationByEmail(email: string) {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
 };

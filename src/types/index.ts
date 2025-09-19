@@ -95,11 +95,31 @@ export interface UserStudyGroup {
   joinedAt: string;
 }
 
+export type LoginResult = {
+  success: boolean;
+  error?: 'invalid_credentials' | 'pending_approval' | 'rejected' | 'unknown';
+  message?: string;
+};
+
 export interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<LoginResult>;
   register: (data: RegisterData) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: { name?: string; username?: string; email?: string }) => Promise<boolean>;
   isLoading: boolean;
+}
+
+export interface PendingRegistration {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  role: 'admin' | 'student';
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  rejection_reason?: string;
 }

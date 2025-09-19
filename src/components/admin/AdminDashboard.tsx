@@ -8,15 +8,16 @@ import { CreateQuizForm } from './CreateQuizForm';
 import { QuizResults } from './QuizResults';
 import { RecentActivities } from './RecentActivities';
 import { QuizAnalyticsDashboard } from './QuizAnalyticsDashboard';
+import { PendingRegistrations } from './PendingRegistrations';
 import { ChatRoomList, ChatRoom } from '@/components/chat';
-import { Plus, BarChart3, BookOpen, Users, MessageSquare, TrendingUp } from 'lucide-react';
-import { analyticsService } from '@/lib/database';
+import { Plus, BarChart3, BookOpen, Users, MessageSquare, TrendingUp, UserCheck } from 'lucide-react';
+import { analyticsService, pendingRegistrationService } from '@/lib/database';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemNotifications } from '@/hooks/useSystemNotifications';
 import { ChatRoom as ChatRoomType } from '@/types';
 
-type ActiveTab = 'overview' | 'analytics' | 'quizzes' | 'create' | 'results' | 'chat';
+type ActiveTab = 'overview' | 'analytics' | 'quizzes' | 'create' | 'results' | 'chat' | 'registrations';
 
 export const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -29,6 +30,7 @@ export const AdminDashboard: React.FC = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoomType | null>(null);
+    const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState(0);
 
     // System notifications for admins
     useSystemNotifications({
@@ -39,6 +41,16 @@ export const AdminDashboard: React.FC = () => {
         // Could trigger a toast notification or update a notification badge
       }
     });
+
+  // Make loadPendingRegistrationsCount available to child components
+  const loadPendingRegistrationsCount = async () => {
+    try {
+      const pendingRegs = await pendingRegistrationService.getPendingRegistrations();
+      setPendingRegistrationsCount(pendingRegs?.length || 0);
+    } catch (error) {
+      console.error('Error loading pending registrations count:', error);
+    }
+  };
 
   useEffect(() => {
     const loadStats = async () => {
@@ -53,16 +65,23 @@ export const AdminDashboard: React.FC = () => {
     };
 
     loadStats();
+    loadPendingRegistrationsCount();
+
+    // Poll for pending registrations every 30 seconds
+    const interval = setInterval(loadPendingRegistrationsCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'analytics':
         return <QuizAnalyticsDashboard />;
+      case 'registrations':
+        return <PendingRegistrations onRegistrationProcessed={loadPendingRegistrationsCount} />;
       case 'overview':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -82,7 +101,7 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-sm font-medium text-gray-600">Total Users</p>
                       <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
                     </div>
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
                       <div className="w-3 h-3 bg-green-600 rounded-full"></div>
                     </div>
                   </div>
@@ -142,7 +161,7 @@ export const AdminDashboard: React.FC = () => {
                   onClose={() => setSelectedChatRoom(null)}
                 />
               ) : (
-                <Card className="h-full flex items-center justify-center">
+                <Card className="flex items-center justify-center h-full">
                   <CardContent className="text-center text-gray-500">
                     <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>Select a chat room to start messaging</p>
@@ -159,7 +178,7 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600">Manage quizzes and monitor student performance</p>
@@ -181,12 +200,18 @@ export const AdminDashboard: React.FC = () => {
             { id: 'quizzes', label: 'Quizzes', icon: BookOpen },
             { id: 'create', label: 'Create Quiz', icon: Plus },
             { id: 'results', label: 'Results', icon: Users },
+            {
+              id: 'registrations',
+              label: 'Registrations',
+              icon: UserCheck,
+              badge: pendingRegistrationsCount > 0 ? pendingRegistrationsCount : undefined
+            },
             { id: 'chat', label: 'Chat', icon: MessageSquare }
-          ].map(({ id, label, icon: Icon }) => (
+          ].map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id as ActiveTab)}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm relative ${
                 activeTab === id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -194,6 +219,11 @@ export const AdminDashboard: React.FC = () => {
             >
               <Icon className="w-4 h-4" />
               <span>{label}</span>
+              {badge && (
+                <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full -top-1 -right-1">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
