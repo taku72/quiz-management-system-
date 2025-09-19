@@ -132,9 +132,9 @@ export const StudentDashboard: React.FC = () => {
           <div className="space-y-6">
             {availableQuizzes.length === 0 ? (
               <Card>
-                <CardContent className="text-center py-12">
-                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No quizzes available</h3>
+                <CardContent className="py-12 text-center">
+                  <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">No quizzes available</h3>
                   <p className="text-gray-600">Check back later for new quizzes</p>
                 </CardContent>
               </Card>
@@ -181,11 +181,11 @@ export const StudentDashboard: React.FC = () => {
                   onClose={() => setSelectedChatRoom(null)}
                 />
               ) : (
-                <Card className="h-full flex items-center justify-center">
+                <Card className="flex items-center justify-center h-full">
                   <CardContent className="text-center text-gray-500">
                     <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>Select a chat room to start messaging</p>
-                    <p className="text-sm mt-2">Discuss quiz topics and get help from peers!</p>
+                    <p className="mt-2 text-sm">Discuss quiz topics and get help from peers!</p>
                   </CardContent>
                 </Card>
               )}
@@ -204,7 +204,7 @@ export const StudentDashboard: React.FC = () => {
         <p className="text-gray-600">Welcome back, {user.name}! Ready to take some quizzes?</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -255,7 +255,7 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+        <nav className="flex space-x-4 overflow-x-auto md:space-x-8 scrollbar-hide">
           {[
             { id: 'available', label: 'Available Quizzes', icon: BookOpen },
             { id: 'history', label: 'My History', icon: Clock },
@@ -264,7 +264,7 @@ export const StudentDashboard: React.FC = () => {
             <button
               key={id}
               onClick={() => handleTabChange(id as ActiveTab)}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm relative ${
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm relative whitespace-nowrap ${
                 activeTab === id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'

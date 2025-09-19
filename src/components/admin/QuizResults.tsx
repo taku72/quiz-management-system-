@@ -143,71 +143,123 @@ export const QuizResults: React.FC = () => {
               <p className="text-sm">Results will appear here once students start taking quizzes</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Quiz
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Score
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Result
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Time Spent
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Completed At
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAttempts
-                    .sort((a, b) => new Date(b.completed_at || b.completedAt).getTime() - new Date(a.completed_at || a.completedAt).getTime())
-                    .map((attempt) => (
-                    <tr key={attempt.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {attempt.users?.username || getStudentName(attempt.studentId || attempt.user_id)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {attempt.quizzes?.title || getQuizTitle(attempt.quizId || attempt.quiz_id)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{attempt.score}%</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          attempt.passed
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {attempt.passed ? 'Passed' : 'Failed'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        {attempt.time_taken ? 
-                          `${Math.floor(attempt.time_taken / 60)}m ${attempt.time_taken % 60}s` :
-                          `${Math.floor((attempt.timeSpent || 0) / 60)}m ${(attempt.timeSpent || 0) % 60}s`
-                        }
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {new Date(attempt.completed_at || attempt.completedAt).toLocaleDateString()} {new Date(attempt.completed_at || attempt.completedAt).toLocaleTimeString()}
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Student
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Quiz
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Score
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Result
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Time Spent
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Completed At
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredAttempts
+                      .sort((a, b) => new Date(b.completed_at || b.completedAt).getTime() - new Date(a.completed_at || a.completedAt).getTime())
+                      .map((attempt) => (
+                      <tr key={attempt.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {attempt.users?.username || getStudentName(attempt.studentId || attempt.user_id)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {attempt.quizzes?.title || getQuizTitle(attempt.quizId || attempt.quiz_id)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{attempt.score}%</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            attempt.passed
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {attempt.passed ? 'Passed' : 'Failed'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                          {attempt.time_taken ?
+                            `${Math.floor(attempt.time_taken / 60)}m ${attempt.time_taken % 60}s` :
+                            `${Math.floor((attempt.timeSpent || 0) / 60)}m ${(attempt.timeSpent || 0) % 60}s`
+                          }
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {new Date(attempt.completed_at || attempt.completedAt).toLocaleDateString()} {new Date(attempt.completed_at || attempt.completedAt).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="space-y-4 md:hidden">
+                {filteredAttempts
+                  .sort((a, b) => new Date(b.completed_at || b.completedAt).getTime() - new Date(a.completed_at || a.completedAt).getTime())
+                  .map((attempt) => (
+                  <div key={attempt.id} className="p-4 bg-white border border-gray-200 rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {attempt.users?.username || getStudentName(attempt.studentId || attempt.user_id)}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {attempt.quizzes?.title || getQuizTitle(attempt.quizId || attempt.quiz_id)}
+                        </p>
+                      </div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        attempt.passed
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {attempt.passed ? 'Passed' : 'Failed'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Score:</span>
+                        <span className="ml-2 font-medium text-gray-900">{attempt.score}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Time:</span>
+                        <span className="ml-2 text-gray-900">
+                          {attempt.time_taken ?
+                            `${Math.floor(attempt.time_taken / 60)}m ${attempt.time_taken % 60}s` :
+                            `${Math.floor((attempt.timeSpent || 0) / 60)}m ${(attempt.timeSpent || 0) % 60}s`
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 mt-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-500">
+                        {new Date(attempt.completed_at || attempt.completedAt).toLocaleDateString()} at {new Date(attempt.completed_at || attempt.completedAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
